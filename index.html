@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bob Co Site</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* İçeriği dikey olarak ortalar */
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url('beach.jpg');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            text-align: left;
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .text-container {
+            max-width: 90%;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 1;
+            position: relative;
+            margin-bottom: 100px; /* Alt kısımdan yeterli boşluk sağlar */
+        }
+
+        .button-container {
+            margin-bottom: 20px;
+        }
+
+        .button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .button:hover {
+            background-color: #218838;
+        }
+
+        }
+
+        @keyframes move {
+            0% {
+                transform: translateY(-10px); /* Yüksekliği azaltarak hareketi belirleyin */
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .text-container {
+                padding: 10px;
+            }
+
+            .button {
+                font-size: 14px;
+                padding: 8px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="text-container">
+        <div class="button-container">
+            <a href="https://www.youtube.com/watch?v=aWt9bGilBa0" class="button">☭</a>
+            <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="button">nothing</a>
+        </div>
+        <h1>Hello guys, this is a recycling machine site</h1>
+        <p>And this is the recycle machine:</p>
+        <p>When you put the garbage in the recycling machine, the screen shows how much it is and gives you that much money.</p>
+        <p>And here the site ends, thanks for listening.</p>
+        <img src="" alt="recycling machine" />
+    </div>
+</body>
+</html>
