@@ -13,9 +13,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const uploadFolder = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadFolder)) fs.mkdirSync(uploadFolder);
+const userFile = path.join(__dirname, 'usernames.json');
 
-// Multer: Dosya yükleme ayarı
+// Klasör yoksa oluştur
+if (!fs.existsSync(uploadFolder)) fs.mkdirSync(uploadFolder);
+if (!fs.existsSync(userFile)) fs.writeFileSync(userFile, JSON.stringify([]));
+
+// Multer ayarı
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadFolder),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
@@ -27,72 +31,71 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// 🔼 Şarkı yükleme
+// Yükleme işlemi
 app.post('/upload', upload.single('audio'), (req, res) => {
   const title = req.body.title || 'Untitled';
   const artist = req.body.artist || 'Unknown';
-  const file = req.file;
+  const username = req.body.user?.trim();
 
-  if (!file) return res.status(400).json({ error: 'No file uploaded.' });
+  if (!req.file || !username) {
+    return res.status(400).json({ error: 'Missing file or username.' });
+  }
 
-  // Metadata dosyasını kaydet
+  const allUsers = JSON.parse(fs.readFileSync(userFile));
+  if (!allUsers.includes(username)) {
+    allUsers.push(username);
+    fs.writeFileSync(userFile, JSON.stringify(allUsers, null, 2));
+  } else {
+    return res.status(400).json({ error: 'Username already used.' });
+  }
+
   const metadata = {
     title,
     artist,
-    filename: file.filename
+    filename: req.file.filename,
+    user: username
   };
 
   fs.writeFileSync(
-    path.join(uploadFolder, file.filename + '.json'),
+    path.join(uploadFolder, req.file.filename + '.json'),
     JSON.stringify(metadata, null, 2)
   );
 
   res.json(metadata);
 });
 
-// 🎵 Yüklenen şarkıları listele
+// Listeleme
 app.get('/songs', (req, res) => {
-  const files = fs.readdirSync(uploadFolder).filter(file => file.endsWith('.mp3'));
+  const files = fs.readdirSync(uploadFolder).filter(f => f.endsWith('.mp3'));
   const list = files.map(file => {
     const metaPath = path.join(uploadFolder, file + '.json');
-    let metadata = { title: file, artist: 'Unknown', filename: file };
-
+    let meta = {
+      filename: file,
+      title: file,
+      artist: 'Unknown'
+    };
     if (fs.existsSync(metaPath)) {
       try {
-        const content = fs.readFileSync(metaPath, 'utf-8');
-        const parsed = JSON.parse(content);
-        metadata = { ...metadata, ...parsed };
+        const data = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+        meta = { ...meta, ...data };
       } catch {}
     }
-
-    return metadata;
+    return meta;
   });
-
   res.json(list);
 });
 
-// 🎧 Şarkı dosyasını sun
-app.get('/songs/:filename', (req, res) => {
-  const filePath = path.join(uploadFolder, req.params.filename);
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).json({ error: 'File not found.' });
-  }
-});
-
-// ❌ Şarkı silme
+// Silme
 app.delete('/songs/:filename', (req, res) => {
-  const audioPath = path.join(uploadFolder, req.params.filename);
-  const metaPath = audioPath + '.json';
-
+  const file = path.join(uploadFolder, req.params.filename);
+  const meta = file + '.json';
   try {
-    if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
-    if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+    if (fs.existsSync(meta)) fs.unlinkSync(meta);
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Delete failed.' });
+  } catch {
+    res.status(500).json({ error: 'Delete failed' });
   }
 });
 
-app.listen(PORT, () => console.log(`🎵 Beatify server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🎧 Beatify running at http://localhost:${PORT}`));
