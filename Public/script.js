@@ -8,7 +8,6 @@ const songList = document.getElementById('songList');
 
 let audioPlayer = null;
 
-// Avatar yükleme
 avatarInput.addEventListener('change', () => {
   const file = avatarInput.files[0];
   if (!file) return;
@@ -19,12 +18,10 @@ avatarInput.addEventListener('change', () => {
   reader.readAsDataURL(file);
 });
 
-// İsim değiştirme
 usernameInput.addEventListener('input', () => {
   username.textContent = usernameInput.value || 'Misafir';
 });
 
-// Şarkı yükleme
 uploadBtn.addEventListener('click', () => {
   const file = audioUpload.files[0];
   if (!file) {
@@ -52,7 +49,6 @@ uploadBtn.addEventListener('click', () => {
     .catch(() => alert('Yükleme sırasında hata oluştu.'));
 });
 
-// Şarkıları listele
 function loadSongs() {
   fetch('/songs')
     .then(res => res.json())
@@ -82,7 +78,6 @@ function loadSongs() {
     .catch(() => alert('Şarkılar yüklenemedi.'));
 }
 
-// Şarkı çalma
 function playSong(filename) {
   if (audioPlayer) {
     audioPlayer.pause();
@@ -93,7 +88,6 @@ function playSong(filename) {
   audioPlayer.play();
 }
 
-// Şarkı silme
 function deleteSong(filename) {
   if (!confirm(`"${filename}" silinsin mi?`)) return;
 
@@ -110,13 +104,11 @@ function deleteSong(filename) {
     .catch(() => alert('Silme sırasında hata oluştu.'));
 }
 
-// Sayfa yüklendiğinde şarkıları getir
 window.onload = () => {
   loadSongs();
   startBackgroundAnimation();
 };
 
-// Canvas arka plan animasyonu
 function startBackgroundAnimation() {
   const canvas = document.getElementById('background');
   const ctx = canvas.getContext('2d');
@@ -129,7 +121,7 @@ function startBackgroundAnimation() {
   window.addEventListener('resize', resize);
   resize();
 
-  const colors = ['#7B3F00', '#3E4E3C', '#A9DFF7']; // şarap kırmızısı, yeşil, bebek mavisi
+  const colors = ['#7B3F00', '#3E4E3C', '#A9DFF7'];
   let step = 0;
 
   function animate() {
@@ -147,4 +139,4 @@ function startBackgroundAnimation() {
     requestAnimationFrame(animate);
   }
   animate();
-    }
+}
