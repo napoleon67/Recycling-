@@ -29,6 +29,7 @@ canvas#background {
   padding: 20px;
   border-radius: 15px;
   text-align: center;
+  backdrop-filter: blur(5px);
 }
 
 .profile {
@@ -60,14 +61,16 @@ canvas#background {
 .upload-section {
   margin-bottom: 20px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   gap: 10px;
 }
 
-.upload-section input[type="file"] {
-  flex: 1;
-  border-radius: 8px;
+.upload-section input[type="file"],
+.upload-section input[type="text"] {
+  width: 100%;
   padding: 8px;
+  border-radius: 8px;
+  border: none;
 }
 
 .upload-section button {
@@ -100,6 +103,14 @@ canvas#background {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+#songList li span {
+  flex: 1;
+  min-width: 100px;
+  word-break: break-word;
 }
 
 #songList li button {
