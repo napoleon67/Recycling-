@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Beatify 🎶</title>
@@ -14,17 +14,22 @@
     <div class="profile">
       <img id="avatar" src="https://placekitten.com/100/100" alt="Avatar" />
       <input type="file" id="avatarInput" accept="image/*" />
-      <input type="text" id="usernameInput" placeholder="Adını yaz..." maxlength="20" />
+      <input type="text" id="usernameInput" placeholder="Enter your name..." maxlength="20" />
     </div>
 
-    <h2>Hoşgeldin, <span id="username">Misafir</span> 👋</h2>
+    <h2>Welcome, <span id="username">Guest</span> 👋</h2>
 
     <div class="upload-section">
       <input type="file" id="audioUpload" accept="audio/*" />
-      <button id="uploadBtn">Şarkı Yükle</button>
+
+      <!-- Yeni alanlar -->
+      <input type="text" id="songTitle" placeholder="Song Title" />
+      <input type="text" id="artistName" placeholder="Artist" />
+
+      <button id="uploadBtn">Upload Song</button>
     </div>
 
-    <h3>Şarkılarım</h3>
+    <h3>Your Songs</h3>
     <ul id="songList"></ul>
   </div>
 
