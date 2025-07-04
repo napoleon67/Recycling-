@@ -19,13 +19,13 @@ avatarInput.addEventListener('change', () => {
 });
 
 usernameInput.addEventListener('input', () => {
-  username.textContent = usernameInput.value || 'Misafir';
+  username.textContent = usernameInput.value || 'Guest';
 });
 
 uploadBtn.addEventListener('click', () => {
   const file = audioUpload.files[0];
   if (!file) {
-    alert('Lütfen önce bir şarkı seçin!');
+    alert('Please select a song first!');
     return;
   }
 
@@ -39,14 +39,14 @@ uploadBtn.addEventListener('click', () => {
     .then(res => res.json())
     .then(data => {
       if (data.error) {
-        alert('Yükleme başarısız: ' + data.error);
+        alert('Upload failed: ' + data.error);
       } else {
-        alert('Şarkı yüklendi!');
+        alert('Song uploaded!');
         audioUpload.value = '';
         loadSongs();
       }
     })
-    .catch(() => alert('Yükleme sırasında hata oluştu.'));
+    .catch(() => alert('Upload error.'));
 });
 
 function loadSongs() {
@@ -58,11 +58,15 @@ function loadSongs() {
         const li = document.createElement('li');
 
         const playBtn = document.createElement('button');
-        playBtn.textContent = '▶️ Çal';
+        playBtn.textContent = '▶️ Play';
         playBtn.onclick = () => playSong(file);
 
+        const stopBtn = document.createElement('button');
+        stopBtn.textContent = '⏹ Stop';
+        stopBtn.onclick = () => stopSong();
+
         const delBtn = document.createElement('button');
-        delBtn.textContent = '❌ Sil';
+        delBtn.textContent = '❌ Delete';
         delBtn.style.marginLeft = '10px';
         delBtn.onclick = () => deleteSong(file);
 
@@ -71,42 +75,48 @@ function loadSongs() {
 
         li.appendChild(span);
         li.appendChild(playBtn);
+        li.appendChild(stopBtn);
         li.appendChild(delBtn);
         songList.appendChild(li);
       });
     })
-    .catch(() => alert('Şarkılar yüklenemedi.'));
+    .catch(() => alert('Could not load songs.'));
 }
 
 function playSong(filename) {
-  if (audioPlayer) {
-    audioPlayer.pause();
-    audioPlayer.remove();
-    audioPlayer = null;
-  }
+  stopSong();
   audioPlayer = new Audio('/songs/' + filename);
   audioPlayer.play();
 }
 
+function stopSong() {
+  if (audioPlayer) {
+    audioPlayer.pause();
+    audioPlayer.currentTime = 0;
+    audioPlayer = null;
+  }
+}
+
 function deleteSong(filename) {
-  if (!confirm(`"${filename}" silinsin mi?`)) return;
+  if (!confirm(`Delete "${filename}"?`)) return;
 
   fetch('/songs/' + filename, { method: 'DELETE' })
     .then(res => res.json())
     .then(data => {
       if (data.error) {
-        alert('Silme işlemi başarısız: ' + data.error);
+        alert('Delete failed: ' + data.error);
       } else {
-        alert('Şarkı silindi.');
+        alert('Song deleted.');
         loadSongs();
       }
     })
-    .catch(() => alert('Silme sırasında hata oluştu.'));
+    .catch(() => alert('Delete error.'));
 }
 
 window.onload = () => {
   loadSongs();
   startBackgroundAnimation();
+  showAdOnce();
 };
 
 function startBackgroundAnimation() {
@@ -121,22 +131,59 @@ function startBackgroundAnimation() {
   window.addEventListener('resize', resize);
   resize();
 
-  const colors = ['#7B3F00', '#3E4E3C', '#A9DFF7'];
-  let step = 0;
+  const colors = ['#7B3F00', '#A9DFF7', '#3E4E3C'];
+  const circles = Array.from({ length: 25 }, () => ({
+    x: Math.random() * width,
+    y: Math.random() * height,
+    r: 20 + Math.random() * 30,
+    dx: -0.5 + Math.random(),
+    dy: -0.5 + Math.random(),
+    color: colors[Math.floor(Math.random() * colors.length)]
+  }));
 
   function animate() {
-    step += 0.005;
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-
-    colors.forEach((color, i) => {
-      let pos = (step + i / colors.length) % 1;
-      gradient.addColorStop(pos, color);
-    });
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
+    ctx.clearRect(0, 0, width, height);
+    for (let c of circles) {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+      ctx.fillStyle = c.color;
+      ctx.fill();
+      c.x += c.dx;
+      c.y += c.dy;
+      if (c.x < 0 || c.x > width) c.dx *= -1;
+      if (c.y < 0 || c.y > height) c.dy *= -1;
+    }
     requestAnimationFrame(animate);
   }
+
   animate();
+}
+
+function showAdOnce() {
+  if (localStorage.getItem('adShown')) return;
+  if (Math.random() > 0.5) return; // %50 ihtimalle
+
+  const adBox = document.createElement('div');
+  adBox.style.position = 'fixed';
+  adBox.style.bottom = '20px';
+  adBox.style.left = '20px';
+  adBox.style.padding = '20px';
+  adBox.style.background = 'rgba(0, 0, 0, 0.8)';
+  adBox.style.color = 'white';
+  adBox.style.borderRadius = '10px';
+  adBox.style.zIndex = 9999;
+  adBox.innerHTML = `
+    <strong>Ad:</strong><br>
+    I hate ads, so I bought this one. There's nothing here.
+    <br><br>
+    <button id="closeAd" style="margin-top:10px;padding:5px;">Close Ad</button>
+  `;
+
+  document.body.appendChild(adBox);
+  localStorage.setItem('adShown', 'true');
+
+  setTimeout(() => {
+    const closeBtn = document.getElementById('closeAd');
+    closeBtn.onclick = () => adBox.remove();
+  }, 5000);
 }
