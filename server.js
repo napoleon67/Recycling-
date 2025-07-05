@@ -8,36 +8,65 @@ const path = require('path');
 const app = express();
 const upload = multer();
 
-// === Cloudinary Ayarları ===
+// Cloudinary ayarları
 cloudinary.config({
   cloud_name: 'beatify',
   api_key: '228552328415657',
   api_secret: '1s7Y2g8kK1uxso5aNw_2vz_lqLE'
 });
 
-// === MongoDB Bağlantısı ===
-mongoose.connect('mongodb+srv://beatify:1234@cluster0.mongodb.net/beatify?retryWrites=true&w=majority')
+// MongoDB bağlantısı
+mongoose.connect('mongodb+srv://Beatify:123456788@cluster0.kfhmbbq.mongodb.net/beatify?retryWrites=true&w=majority')
   .then(() => console.log("✅ MongoDB bağlandı"))
   .catch(err => console.error("MongoDB hatası:", err));
 
-// === MongoDB Şema ===
+// Şemalar
 const Song = mongoose.model("Song", {
   username: String,
   songName: String,
   url: String,
+  likes: { type: Number, default: 0 },
+  comments: [{ username: String, text: String, date: { type: Date, default: Date.now } }],
   date: { type: Date, default: Date.now }
 });
 
-// === Middleware ===
+const User = mongoose.model("User", {
+  username: { type: String, unique: true },
+  password: String
+});
+
 app.use(express.static('public'));
 app.use(express.json());
 
-// === Ana Sayfa ===
+// Ana sayfa
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// === Müzik Yükleme ===
+// Kayıt
+app.post('/register', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const newUser = new User({ username, password });
+    await newUser.save();
+    res.json({ success: true });
+  } catch (e) {
+    res.status(400).json({ success: false, error: "Kullanıcı adı alınmış" });
+  }
+});
+
+// Giriş
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username, password });
+  if (user) {
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false });
+  }
+});
+
+// Şarkı yükleme
 app.post('/upload', upload.single('music'), async (req, res) => {
   const { username, songName } = req.body;
   const file = req.file;
@@ -67,13 +96,42 @@ app.post('/upload', upload.single('music'), async (req, res) => {
   streamifier.createReadStream(file.buffer).pipe(uploadStream);
 });
 
-// === Müzik Listesi ===
+// Şarkıları listele (opsiyonel kullanıcı filtresi ve arama)
 app.get('/songs', async (req, res) => {
-  const songs = await Song.find().sort({ date: -1 }).limit(50);
+  const filter = {};
+  if (req.query.user) filter.username = req.query.user;
+  if (req.query.q) filter.songName = new RegExp(req.query.q, 'i');
+
+  const songs = await Song.find(filter).sort({ date: -1 }).limit(50);
   res.json(songs);
 });
 
-// === Sunucu Başlat ===
+// Şarkı silme
+app.delete('/songs/:id', async (req, res) => {
+  try {
+    await Song.deleteOne({ _id: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Beğenme
+app.post('/songs/:id/like', async (req, res) => {
+  await Song.updateOne({ _id: req.params.id }, { $inc: { likes: 1 } });
+  res.json({ success: true });
+});
+
+// Yorum ekleme
+app.post('/songs/:id/comment', async (req, res) => {
+  const { username, text } = req.body;
+  await Song.updateOne(
+    { _id: req.params.id },
+    { $push: { comments: { username, text } } }
+  );
+  res.json({ success: true });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Beatify çalışıyor: http://localhost:${PORT}`);
