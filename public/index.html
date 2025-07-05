@@ -2,37 +2,246 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Beatify 🎶</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Beatify</title>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    input, button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      max-width: 300px;
+      box-sizing: border-box;
+    }
+    ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    li {
+      margin-bottom: 15px;
+      background: #222;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    a {
+      color: #4caf50;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    button {
+      cursor: pointer;
+      margin-left: 5px;
+    }
+  </style>
 </head>
 <body>
-  <canvas id="background"></canvas>
 
-  <div class="container">
-    <h1>Beatify 🎵</h1>
+  <h1>🎵 Beatify</h1>
 
-    <div class="profile">
-      <img id="avatar" src="https://placekitten.com/100/100" alt="Avatar" />
-      <input type="file" id="avatarInput" accept="image/*" />
-      <input type="text" id="usernameInput" placeholder="Enter your name..." maxlength="20" />
-    </div>
+  <h3>👤 Giriş / Kayıt</h3>
+  <input id="uname" placeholder="Kullanıcı adı" />
+  <input id="upass" type="password" placeholder="Şifre" />
+  <button onclick="register()">Kayıt Ol</button>
+  <button onclick="login()">Giriş Yap</button>
+  <p id="loginStatus"></p>
 
-    <h2>Welcome, <span id="username">Guest</span> 👋</h2>
+  <hr />
 
-    <div class="upload-section">
-      <input type="file" id="audioUpload" accept="audio/*" />
+  <h3>🎶 Şarkı Yükle</h3>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="text" name="username" id="uploadUsername" placeholder="Kullanıcı adı" readonly required />
+    <input type="text" name="songName" placeholder="Şarkı ismi" required />
+    <input type="file" name="music" accept="audio/*" required />
+    <button type="submit">Yükle</button>
+  </form>
+  <p id="status"></p>
+  <audio id="player" controls style="width:100%; margin-top:20px;"></audio>
 
-      <!-- Yeni alanlar -->
-      <input type="text" id="songTitle" placeholder="Song Title" />
-      <input type="text" id="artistName" placeholder="Artist" />
+  <hr />
 
-      <button id="uploadBtn">Upload Song</button>
-    </div>
+  <h3>🔎 Şarkı Ara</h3>
+  <input id="searchBox" placeholder="Şarkı ismine göre ara..." oninput="fetchSongs()" />
 
-    <h3>Your Songs</h3>
-    <ul id="songList"></ul>
-  </div>
+  <h2>🎧 Şarkı Listesi</h2>
+  <ul id="songList"></ul>
 
-  <script src="script.js"></script>
+<script>
+  let currentUser = null;
+
+  const uname = document.getElementById('uname');
+  const upass = document.getElementById('upass');
+  const loginStatus = document.getElementById('loginStatus');
+  const uploadUsername = document.getElementById('uploadUsername');
+  const form = document.getElementById('uploadForm');
+  const player = document.getElementById('player');
+  const status = document.getElementById('status');
+  const songList = document.getElementById('songList');
+  const searchBox = document.getElementById('searchBox');
+
+  function register() {
+    const username = uname.value.trim();
+    const password = upass.value.trim();
+    if (!username || !password) {
+      loginStatus.textContent = "Lütfen kullanıcı adı ve şifre girin.";
+      return;
+    }
+    fetch('/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username, password })
+    }).then(res => res.json())
+      .then(data => {
+        loginStatus.textContent = data.success ? "Kayıt başarılı!" : "❌ " + (data.error || "Hata oluştu");
+      });
+  }
+
+  function login() {
+    const username = uname.value.trim();
+    const password = upass.value.trim();
+    if (!username || !password) {
+      loginStatus.textContent = "Lütfen kullanıcı adı ve şifre girin.";
+      return;
+    }
+    fetch('/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username, password })
+    }).then(res => {
+      if (res.status === 200) return res.json();
+      else throw new Error("Giriş başarısız");
+    }).then(data => {
+      if (data.success) {
+        currentUser = username;
+        loginStatus.textContent = "Giriş başarılı! Hoşgeldin " + currentUser;
+        uploadUsername.value = currentUser;
+        uploadUsername.readOnly = true;
+      } else {
+        loginStatus.textContent = "❌ Kullanıcı adı veya şifre yanlış.";
+      }
+    }).catch(() => {
+      loginStatus.textContent = "❌ Kullanıcı adı veya şifre yanlış.";
+    });
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!currentUser) {
+      status.textContent = "Önce giriş yapmalısınız.";
+      return;
+    }
+    const formData = new FormData(form);
+    status.textContent = "Yükleniyor...";
+    try {
+      const res = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      player.src = data.url;
+      player.play();
+      status.textContent = "Yükleme başarılı!";
+      form.reset();
+      uploadUsername.value = currentUser;
+      fetchSongs();
+    } catch (e) {
+      status.textContent = "Yükleme başarısız.";
+      console.error(e);
+    }
+  });
+
+  async function fetchSongs() {
+    const q = searchBox.value.trim();
+    const userParam = currentUser ? `?user=${encodeURIComponent(currentUser)}&q=${encodeURIComponent(q)}` : `?q=${encodeURIComponent(q)}`;
+    const res = await fetch('/songs' + userParam);
+    const songs = await res.json();
+    songList.innerHTML = "";
+
+    songs.forEach(song => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <strong>${song.songName}</strong> - 
+        <a href="#" onclick="filterByUser('${song.username}')">${song.username}</a>
+        <button onclick="play('${song.url}')">▶️</button>
+        <button onclick="like('${song._id}')">❤️ ${song.likes || 0}</button>
+        <button onclick="commentPrompt('${song._id}')">✏️ Yorum</button>
+        ${currentUser === song.username ? `<button onclick="deleteSong('${song._id}')">🗑️ Sil</button>` : ''}
+        <ul id="comments-${song._id}"></ul>
+      `;
+
+      if (song.comments) {
+        const ul = li.querySelector(`#comments-${song._id}`);
+        song.comments.forEach(c => {
+          const commentLi = document.createElement('li');
+          commentLi.textContent = `${c.username}: ${c.text}`;
+          ul.appendChild(commentLi);
+        });
+      }
+
+      songList.appendChild(li);
+    });
+  }
+
+  function filterByUser(user) {
+    searchBox.value = "";
+    fetch(`/songs?user=${encodeURIComponent(user)}`).then(r => r.json()).then(songs => {
+      songList.innerHTML = "";
+      songs.forEach(song => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <strong>${song.songName}</strong> - 
+          <a href="#" onclick="filterByUser('${song.username}')">${song.username}</a>
+          <button onclick="play('${song.url}')">▶️</button>
+          <button onclick="like('${song._id}')">❤️ ${song.likes || 0}</button>
+          <button onclick="commentPrompt('${song._id}')">✏️ Yorum</button>
+          ${currentUser === song.username ? `<button onclick="deleteSong('${song._id}')">🗑️ Sil</button>` : ''}
+          <ul id="comments-${song._id}"></ul>
+        `;
+        songList.appendChild(li);
+      });
+    });
+  }
+
+  function play(url) {
+    player.src = url;
+    player.play();
+  }
+
+  async function like(id) {
+    await fetch(`/songs/${id}/like`, { method: 'POST' });
+    fetchSongs();
+  }
+
+  async function commentPrompt(id) {
+    if (!currentUser) {
+      alert("Yorum yapmak için giriş yapmalısınız.");
+      return;
+    }
+    const text = prompt("Yorumun:");
+    if (!text) return;
+    await fetch(`/songs/${id}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: currentUser, text })
+    });
+    fetchSongs();
+  }
+
+  async function deleteSong(id) {
+    if (!confirm("Bu şarkıyı silmek istediğine emin misin?")) return;
+    await fetch(`/songs/${id}`, { method: 'DELETE' });
+    fetchSongs();
+  }
+
+  // İlk listeyi yükle
+  fetchSongs();
+</script>
+
 </body>
 </html>
