@@ -96,7 +96,7 @@ app.post('/upload', upload.single('music'), async (req, res) => {
   streamifier.createReadStream(file.buffer).pipe(uploadStream);
 });
 
-// Şarkıları listele (opsiyonel kullanıcı filtresi ve arama)
+// Şarkıları listele (filtreli)
 app.get('/songs', async (req, res) => {
   const filter = {};
   if (req.query.user) filter.username = req.query.user;
