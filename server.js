@@ -15,7 +15,55 @@ app.use(express.urlencoded({ extended: true }));
 const uploadFolder = path.join(__dirname, 'uploads');
 const userFile = path.join(__dirname, 'usernames.json');
 
-// Klasör yoksa oluştur
+// Klasör yoksa oconst express = require('express');
+const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const streamifier = require('streamifier');
+const path = require('path');
+
+const app = express();
+const upload = multer();
+
+cloudinary.config({
+  cloud_name: 'beatify',
+  api_key: '228552328415657',
+  api_secret: '1s7Y2g8kK1uxso5aNw_2vz_lqLE'
+});
+
+app.use(express.static('public'));
+app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.post('/upload', upload.single('music'), (req, res) => {
+  const file = req.file;
+  if (!file) return res.status(400).send("Dosya yok");
+
+  const uploadStream = cloudinary.uploader.upload_stream(
+    {
+      resource_type: "video", // mp3 için video
+      folder: "beatify_songs"
+    },
+    (error, result) => {
+      if (error) {
+        console.error("Yükleme hatası:", error);
+        res.status(500).send("Yükleme başarısız");
+      } else {
+        res.json({ url: result.secure_url });
+      }
+    }
+  );
+
+  streamifier.createReadStream(file.buffer).pipe(uploadStream);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Beatify sunucusu çalışıyor: http://localhost:${PORT}`);
+});
+luştur
 if (!fs.existsSync(uploadFolder)) fs.mkdirSync(uploadFolder);
 if (!fs.existsSync(userFile)) fs.writeFileSync(userFile, JSON.stringify([]));
 
